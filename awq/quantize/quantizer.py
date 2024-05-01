@@ -1,3 +1,4 @@
+from awq.utils.progress_tracker import progress_tracker
 import torch
 import inspect
 import logging
@@ -115,6 +116,10 @@ class AwqQuantizer:
 
     def quantize(self):
         for i in tqdm(range(len(self.modules)), desc="AWQ"):
+            print(f"Quantizing module {i + 1}/{len(self.modules)}")
+            # Update the state of the progress tracker
+            progress_tracker.update_job_status(f"Quantizing module {i + 1}/{len(self.modules)}")
+            
             # Move module and inputs to correct device
             common_device = next(self.modules[i].parameters()).device
             if common_device is None or str(common_device) == "cpu":
