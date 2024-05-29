@@ -15,6 +15,7 @@ from awq.modules.linear import (
     WQLinear_GEMV,
     WQLinear_Marlin,
     WQLinear_GEMVFast,
+    WQLinear_GEMM_Triton
 )
 from awq.utils.module import (
     append_str_prefix,
@@ -205,6 +206,9 @@ class AwqQuantizer:
                 scales = scales.t().contiguous()
                 zeros = zeros.t().contiguous()
                 q_linear_module = WQLinear_GEMM
+            
+            if self.version == "gemm_triton":
+                q_linear_module = WQLinear_GEMM_Triton
 
             elif self.version == "gemv":
                 q_linear_module = WQLinear_GEMV
