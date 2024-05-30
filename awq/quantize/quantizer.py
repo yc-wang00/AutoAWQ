@@ -208,6 +208,8 @@ class AwqQuantizer:
                 q_linear_module = WQLinear_GEMM
             
             if self.version == "gemm_triton":
+                scales = scales.t().contiguous()
+                zeros = zeros.t().contiguous()
                 q_linear_module = WQLinear_GEMM_Triton
 
             elif self.version == "gemv":

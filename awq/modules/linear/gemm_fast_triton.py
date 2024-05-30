@@ -221,10 +221,17 @@ class WQLinear_GEMM_Triton(nn.Module):
         #     for i in range(pack_num):
         #         qzero_col = zeros[:, col * pack_num + order_map[i]]
         #         qzeros[:, col] |= qzero_col << (i * awq_linear.w_bit)
-        for row in range(zeros.shape[0] // pack_num):
+
+        # row variant wrong for zeros - we pack zeros in columns
+        # for row in range(zeros.shape[0] // pack_num):
+        #     for i in range(pack_num):
+        #         qzero_row = zeros[row * pack_num + i]
+        #         qzeros[:, col] |= qzero_row << (i * awq_linear.w_bit)
+
+        for col in range(zeros.shape[1] // pack_num):
             for i in range(pack_num):
-                qzero_row = zeros[row * pack_num + i]
-                qzeros[row] |= qzero_row << (i * awq_linear.w_bit)
+                qzero_col = zeros[:, col * pack_num + i]
+                qzeros[:, col] |= qzero_col << (i * awq_linear.w_bit)
 
         awq_linear.qzeros = qzeros
 
