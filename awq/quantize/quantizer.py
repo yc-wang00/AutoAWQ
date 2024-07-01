@@ -203,7 +203,8 @@ class AwqQuantizer:
 
             if self.version == "gemm":
                 scales = scales.t().contiguous()
-                zeros = zeros.t().contiguous()
+                if zeros is not None:
+                    zeros = zeros.t().contiguous()
                 q_linear_module = WQLinear_GEMM
 
             elif self.version == "gemv":
@@ -260,7 +261,7 @@ class AwqQuantizer:
         weight = weight.view(-1, self.group_size)
         # Calculates the relative magnitude of the weights within each of the quantization groups, 
         # and rescales each group individually so that each group has weights on a 0-1 scale.
-        w_scale = weight.abs() / weight.abs().amax(dim=1, keepdim=True)
+        w_scale = weight.abs() / (weight.abs().amax(dim=1, keepdim=True) + 1e-6)
         # Resizes the rescaled weight matrix back up to its original dimensions
         w_scale = w_scale.view(org_shape)
         # Gets the average rescaled magnitude for each output channel
@@ -326,7 +327,7 @@ class AwqQuantizer:
 
             # NOTE: s^-1 * x is fused here, according to paper
             if self.duo_scaling:
-                scales = (x_mean.pow(ratio) / w_mean.pow(1 - ratio)).clamp(min=1e-4)
+                scales = (x_mean.pow(ratio) / (w_mean.pow(1 - ratio) + 1e-4)).clamp(min=1e-4)
             else:
                 scales = x_mean.pow(ratio).clamp(min=1e-4).view(-1)
             scales = scales / (scales.max() * scales.min()).sqrt()
@@ -524,6 +525,12 @@ class AwqQuantizer:
             named_linears = {
                 **named_linears,
                 "block_sparse_moe": layer.block_sparse_moe,
+            }
+
+        if self.awq_model.model_type == "deepseek_v2":
+            named_linears = {
+                **named_linears,
+                "mlp": layer.mlp,
             }
 
         for name in named_linears:
